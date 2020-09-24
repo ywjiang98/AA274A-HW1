@@ -34,6 +34,33 @@ def compute_traj_coeffs(initial_state, final_state, tf):
     """
     ########## Code starts here ##########
 
+    # columns:    x1/y1 x2/y2      x3/y3        x4/y4
+    A = np.array([[1,    0,         0,           0],  # x(0) = x1 and y(0) = y1
+                  [0,    1,         0,           0],  # xdot(0) = x2 and ydot(0) = y2
+                  [1,   tf, pow(tf,2),   pow(tf,3)],  # x(tf) = x1 + tf*x2 + tf^2*x3 + tf^3*x4 and y(tf) = y1 + tf*y2 + tf^2*y3 + tf^3*y4
+                  [0,    1,      2*tf, 3*pow(tf,2)]]) # xdot(tf) = x2 + 2*tf*x3 + 3*tf^2*x4 and ydot(tf) = y2 + 2*tf*y3 + 3*tf^2*y4
+
+    # calculate initial/final x/y velocities based on initial/final V and th
+    initial_xdot = initial_state.V * math.cos(initial_state.th)
+    final_xdot = final_state.V * math.cos(final_state.th)
+    initial_ydot = initial_state.V * math.sin(initial_state.th)
+    final_ydot = final_state.V * math.sin(final_state.th)
+
+    b_x = np.array([initial_state.x, # x(0)
+                    initial_xdot,    # xdot(0)
+                    final_state.x,   # x(tf)
+                    final_xdot])     # xdot(tf)
+
+    b_y = np.array([initial_state.y, # y(0)
+                    initial_ydot,    # ydot(0)
+                    final_state.y,   # y(tf)
+                    final_ydot])     # ydot(tf)
+
+    # Now we have two matrix equations: A*x = b_x and A*y = b_y, where x = (x1,x2,x3,x4) and y = (y1,y2,y3,y4)
+    x = np.linalg.solve(A, b_x)
+    y = np.linalg.solve(A, b_y)
+
+    coeffs = np.concatenate((x, y)) # coeffs is (x1,x2,x3,x4,y1,y2,y3,y4)
     ########## Code ends here ##########
     return coeffs
 
@@ -50,6 +77,23 @@ def compute_traj(coeffs, tf, N):
     t = np.linspace(0,tf,N) # generate evenly spaced points from 0 to tf
     traj = np.zeros((N,7))
     ########## Code starts here ##########
+    x1 = coeffs[0]
+    x2 = coeffs[1]
+    x3 = coeffs[2]
+    x4 = coeffs[3]
+    y1 = coeffs[4]
+    y2 = coeffs[5]
+    y3 = coeffs[6]
+    y4 = coeffs[7]
+
+    for i in range(N):
+        traj[i, 0] = x1 + x2*t[i] + x3*pow(t[i],2) + x4*pow(t[i],3) # x
+        traj[i, 1] = y1 + y2*t[i] + y3*pow(t[i],2) + y4*pow(t[i],3) # y
+        traj[i, 3] = x2 + 2*x3*t[i] + 3*x4*pow(t[i],2) # xdot
+        traj[i, 4] = y2 + 2*y3*t[i] + 3*y4*pow(t[i],2) # ydot
+        traj[i, 2] = math.atan2(traj[i, 4], traj[i, 3]) # th = arctan(ydot/xdot)
+        traj[i, 5] = 2*x3 + 6*x4*t[i] # xdotdot
+        traj[i, 6] = 2*y3 + 6*y4*t[i] # ydotdot
 
     ########## Code ends here ##########
 
@@ -64,6 +108,25 @@ def compute_controls(traj):
         om (np.array shape [N]) om at each point of traj
     """
     ########## Code starts here ##########
+    N = traj.shape[0]
+    V = np.zeros(N)
+    om = np.zeros(N)
+
+    for i in range(N):
+        # V = sqrt(xdot^2 + ydot^2)
+        V[i] = math.sqrt(pow(traj[i,3], 2) + pow(traj[i,4], 2))
+
+        # matrix A = [cos(th), -Vsin(th)]
+        #            [sin(th),  Vcos(th)]
+        A = np.array([[math.cos(traj[i,2]), -V[i]*math.sin(traj[i,2])],
+                      [math.sin(traj[i,2]),  V[i]*math.cos(traj[i,2])]])
+
+        # vector b = (xdotdot, ydotdot)
+        b = (traj[i,5], traj[i,6])
+
+        # solve Ax=b where x = (a, om)
+        x = np.linalg.solve(A, b)
+        om[i] = x[1]
 
     ########## Code ends here ##########
 
@@ -83,7 +146,7 @@ def compute_arc_length(V, t):
     """
     s = None
     ########## Code starts here ##########
-
+    s = cumtrapz(V, t, initial=0)
     ########## Code ends here ##########
     return s
 
@@ -104,7 +167,8 @@ def rescale_V(V, om, V_max, om_max):
     Hint: This should only take one or two lines.
     """
     ########## Code starts here ##########
-
+    # minimum of initial velocity, max velocity, and scaled velocity (which ensures om_max is not exeeded)
+    V_tilde = [min(V[i], V_max, abs(V[i]*om_max/om[i])) for i in range(len(V))]
     ########## Code ends here ##########
     return V_tilde
 
@@ -121,7 +185,7 @@ def compute_tau(V_tilde, s):
     Hint: Use the function cumtrapz. This should take one line.
     """
     ########## Code starts here ##########
-
+    tau = cumtrapz([1/V_tilde[i] for i in range(len(V_tilde))], s, initial=0)
     ########## Code ends here ##########
     return tau
 
@@ -138,7 +202,7 @@ def rescale_om(V, om, V_tilde):
     Hint: This should take one line.
     """
     ########## Code starts here ##########
-
+    om_tilde = [om[i]*V_tilde[i]/V[i] for i in range(len(V))]
     ########## Code ends here ##########
     return om_tilde
 
@@ -213,7 +277,6 @@ if __name__ == "__main__":
     coeffs = compute_traj_coeffs(initial_state=s_0, final_state=s_f, tf=tf)
     t, traj = compute_traj(coeffs=coeffs, tf=tf, N=N)
     V,om = compute_controls(traj=traj)
-
     part_b_complete = False
     s = compute_arc_length(V, t)
     if s is not None:
