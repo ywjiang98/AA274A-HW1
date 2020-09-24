@@ -57,9 +57,29 @@ class TrajectoryTracker:
         dt = t - self.t_prev
         x_d, xd_d, xdd_d, y_d, yd_d, ydd_d = self.get_desired_state(t)
 
-        ########## Code starts here ##########
-        V = 0
-        om = 0
+        ########## Code starts here ##########        
+        
+        # xd and yd are the x and y components of velocity respectively 
+        xd = self.V_prev * np.cos(th)
+        yd = self.V_prev * np.sin(th)
+
+        # Virtual control law
+        u1 = xdd_d + self.kpx * (x_d - x) + self.kdx * (xd_d - xd)
+        u2 = ydd_d + self.kpy * (y_d - y) + self.kdy * (yd_d - yd)
+        
+        # Matrix equation to solve for alpha and omega, Jx = u
+        J = np.array([[np.cos(th), -np.sin(th)],
+                      [np.sin(th), np.cos(th)]])
+        u = np.array([u1, u2])
+
+        # Solve Jx = u to find x = (alpha, V_prev*om)
+        x = np.linalg.solve(J, u)
+        V = x[0] * dt + self.V_prev # numerical integration of alpha (x[0]) to get V
+        om = x[1] / self.V_prev
+
+        if abs(V) < V_PREV_THRES:
+            V = np.sign(V) * V_PREV_THRES
+
         ########## Code ends here ##########
 
         # apply control limits
