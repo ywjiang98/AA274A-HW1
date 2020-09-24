@@ -1,10 +1,14 @@
 import numpy as np
+import math
 from utils import wrapToPi
 
 # command zero velocities once we are this close to the goal
 RHO_THRES = 0.05
 ALPHA_THRES = 0.1
 DELTA_THRES = 0.1
+
+# Switch over to sinc() function when abs(alpha) is less than this
+SINC_THRES = 0.001
 
 class PoseController:
     """ Pose stabilization controller """
@@ -34,7 +38,27 @@ class PoseController:
         may also be useful, look up its documentation
         """
         ########## Code starts here ##########
-        
+        # define errors in x and y position
+        x_error = self.x_g - x
+        y_error = self.y_g - y
+
+        # change coordinate system
+        rho = math.sqrt(pow(x_error,2) + pow(y_error,2))
+        alpha = wrapToPi(math.atan2(y_error, x_error) - th)
+        delta = wrapToPi(math.atan2(y_error, x_error) - self.th_g)
+
+        # calculate V with control law
+        V = self.k1*rho*math.cos(alpha)
+
+        # near alpha = 0, sinc(alpha) = sin(pi*alpha)/(pi*alpha) ~= sin(2*alpha)/(2*alpha) = sin(alpha)*cos(alpha)/alpha
+        # but we have the benefit that sinc(alpha) is defined at alpha = 0
+        if (abs(alpha) < SINC_THRES):
+            sinc = np.sinc(alpha)
+        else:
+            sinc = math.sin(alpha)*math.cos(alpha)/alpha
+            
+        # calculate om with control law
+        om = self.k2*alpha + self.k1*sinc*(alpha+self.k3*delta)
         ########## Code ends here ##########
 
         # apply control limits
