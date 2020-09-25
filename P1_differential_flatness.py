@@ -35,10 +35,10 @@ def compute_traj_coeffs(initial_state, final_state, tf):
     ########## Code starts here ##########
 
     # columns:    x1/y1 x2/y2      x3/y3        x4/y4
-    A = np.array([[1,    0,         0,           0],  # x(0) = x1 and y(0) = y1
-                  [0,    1,         0,           0],  # xdot(0) = x2 and ydot(0) = y2
-                  [1,   tf, pow(tf,2),   pow(tf,3)],  # x(tf) = x1 + tf*x2 + tf^2*x3 + tf^3*x4 and y(tf) = y1 + tf*y2 + tf^2*y3 + tf^3*y4
-                  [0,    1,      2*tf, 3*pow(tf,2)]]) # xdot(tf) = x2 + 2*tf*x3 + 3*tf^2*x4 and ydot(tf) = y2 + 2*tf*y3 + 3*tf^2*y4
+    A = np.array([[1,    0,         0,           0],  # x(0)/y(0)
+                  [0,    1,         0,           0],  # xdot(0)/ydot(0)
+                  [1,   tf, pow(tf,2),   pow(tf,3)],  # x(tf)/y(tf)
+                  [0,    1,      2*tf, 3*pow(tf,2)]]) # xdot(tf)/ydot(tf)
 
     # calculate initial/final x/y velocities based on initial/final V and th
     initial_xdot = initial_state.V * math.cos(initial_state.th)
@@ -61,6 +61,8 @@ def compute_traj_coeffs(initial_state, final_state, tf):
     y = np.linalg.solve(A, b_y)
 
     coeffs = np.concatenate((x, y)) # coeffs is (x1,x2,x3,x4,y1,y2,y3,y4)
+    print(coeffs)
+
     ########## Code ends here ##########
     return coeffs
 
@@ -77,21 +79,14 @@ def compute_traj(coeffs, tf, N):
     t = np.linspace(0,tf,N) # generate evenly spaced points from 0 to tf
     traj = np.zeros((N,7))
     ########## Code starts here ##########
-    x1 = coeffs[0]
-    x2 = coeffs[1]
-    x3 = coeffs[2]
-    x4 = coeffs[3]
-    y1 = coeffs[4]
-    y2 = coeffs[5]
-    y3 = coeffs[6]
-    y4 = coeffs[7]
+    x1, x2, x3, x4, y1, y2, y3, y4 = coeffs
 
     for i in range(N):
         traj[i, 0] = x1 + x2*t[i] + x3*pow(t[i],2) + x4*pow(t[i],3) # x
         traj[i, 1] = y1 + y2*t[i] + y3*pow(t[i],2) + y4*pow(t[i],3) # y
         traj[i, 3] = x2 + 2*x3*t[i] + 3*x4*pow(t[i],2) # xdot
         traj[i, 4] = y2 + 2*y3*t[i] + 3*y4*pow(t[i],2) # ydot
-        traj[i, 2] = math.atan2(traj[i, 4], traj[i, 3]) # th = arctan(ydot/xdot)
+        traj[i, 2] = np.arctan2(traj[i, 4], traj[i, 3]) # th = arctan(ydot/xdot)
         traj[i, 5] = 2*x3 + 6*x4*t[i] # xdotdot
         traj[i, 6] = 2*y3 + 6*y4*t[i] # ydotdot
 
@@ -114,12 +109,12 @@ def compute_controls(traj):
 
     for i in range(N):
         # V = sqrt(xdot^2 + ydot^2)
-        V[i] = math.sqrt(pow(traj[i,3], 2) + pow(traj[i,4], 2))
+        V[i] = np.sqrt(pow(traj[i,3], 2) + pow(traj[i,4], 2))
 
         # matrix A = [cos(th), -Vsin(th)]
         #            [sin(th),  Vcos(th)]
-        A = np.array([[math.cos(traj[i,2]), -V[i]*math.sin(traj[i,2])],
-                      [math.sin(traj[i,2]),  V[i]*math.cos(traj[i,2])]])
+        A = np.array([[np.cos(traj[i,2]), -V[i]*np.sin(traj[i,2])],
+                      [np.sin(traj[i,2]),  V[i]*np.cos(traj[i,2])]])
 
         # vector b = (xdotdot, ydotdot)
         b = (traj[i,5], traj[i,6])
