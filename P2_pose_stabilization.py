@@ -49,16 +49,10 @@ class PoseController:
 
         # calculate V with control law
         V = self.k1*rho*math.cos(alpha)
-
-        # near alpha = 0, sinc(alpha) = sin(pi*alpha)/(pi*alpha) ~= sin(2*alpha)/(2*alpha) = sin(alpha)*cos(alpha)/alpha
-        # but we have the benefit that sinc(alpha) is defined at alpha = 0
-        if (abs(alpha) < SINC_THRES):
-            sinc = np.sinc(alpha)
-        else:
-            sinc = math.sin(alpha)*math.cos(alpha)/alpha
             
-        # calculate om with control law
-        om = self.k2*alpha + self.k1*sinc*(alpha+self.k3*delta)
+        # calculate om with control law. sinc(alpha) = sin(pi*alpha)/(pi*alpha) so sinc(alpha/pi) = sin(alpha)/alpha
+        om = self.k2*alpha + self.k1*np.sinc(alpha/np.pi)*np.cos(alpha)*(alpha+self.k3*delta)
+        
         ########## Code ends here ##########
 
         # apply control limits
