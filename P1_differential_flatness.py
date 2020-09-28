@@ -111,16 +111,16 @@ def compute_controls(traj):
         # V = sqrt(xdot^2 + ydot^2)
         V[i] = np.sqrt(pow(traj[i,3], 2) + pow(traj[i,4], 2))
 
-        # matrix A = [cos(th), -Vsin(th)]
+        # matrix J = [cos(th), -Vsin(th)]
         #            [sin(th),  Vcos(th)]
-        A = np.array([[np.cos(traj[i,2]), -V[i]*np.sin(traj[i,2])],
+        J = np.array([[np.cos(traj[i,2]), -V[i]*np.sin(traj[i,2])],
                       [np.sin(traj[i,2]),  V[i]*np.cos(traj[i,2])]])
 
         # vector b = (xdotdot, ydotdot)
         b = (traj[i,5], traj[i,6])
 
         # solve Ax=b where x = (a, om)
-        x = np.linalg.solve(A, b)
+        x = np.linalg.solve(J, b)
         om[i] = x[1]
 
     ########## Code ends here ##########
