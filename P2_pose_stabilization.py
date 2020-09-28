@@ -7,9 +7,6 @@ RHO_THRES = 0.05
 ALPHA_THRES = 0.1
 DELTA_THRES = 0.1
 
-# Switch over to sinc() function when abs(alpha) is less than this
-SINC_THRES = 0.001
-
 class PoseController:
     """ Pose stabilization controller """
     def __init__(self, k1, k2, k3, V_max=0.5, om_max=1):
@@ -47,11 +44,14 @@ class PoseController:
         alpha = wrapToPi(math.atan2(y_error, x_error) - th)
         delta = wrapToPi(math.atan2(y_error, x_error) - self.th_g)
 
-        # calculate V with control law
-        V = self.k1*rho*math.cos(alpha)
-            
-        # calculate om with control law. sinc(alpha) = sin(pi*alpha)/(pi*alpha) so sinc(alpha/pi) = sin(alpha)/alpha
-        om = self.k2*alpha + self.k1*np.sinc(alpha/np.pi)*np.cos(alpha)*(alpha+self.k3*delta)
+        if (rho < RHO_THRES) and (alpha < ALPHA_THRES) and (delta < DELTA_THRES):
+            V = 0
+            om = 0
+        else:
+            # calculate V with control law
+            V = self.k1*rho*math.cos(alpha)   
+            # calculate om with control law. sinc(alpha) = sin(pi*alpha)/(pi*alpha) so sinc(alpha/pi) = sin(alpha)/alpha
+            om = self.k2*alpha + self.k1*np.sinc(alpha/np.pi)*np.cos(alpha)*(alpha+self.k3*delta)
         
         ########## Code ends here ##########
 
