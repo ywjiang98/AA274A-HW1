@@ -17,9 +17,25 @@ def ode_fun(tau, z):
     """
     ########## Code starts here ##########
 
+    x, y, th, p1, p2, p3, tf = z
+
+    V = -0.5 * ((p1*np.cos(th))+(p2*np.sin(th)))
+    om = -0.5 * p3
+    
+    Xdot = tf*np.array([V*np.cos(th),  # xdot
+                        V*np.sin(th),  # ydot
+                                  om]) # thdot
+    
+    pdot = -tf*np.array([0, # p1dot
+                         0, # p2dot
+                         -p1*V*np.sin(th) + p2*V*np.cos(th)]) # p3dot
+
+    rdot = 0 # tf is a constant so rdot = 0
+
+    dz = np.hstack((Xdot, pdot, rdot))
+
     ########## Code ends here ##########
     return dz
-
 
 def bc_fun(za, zb):
     """
@@ -40,6 +56,28 @@ def bc_fun(za, zb):
     x0 = [0, 0, -np.pi/2.0]
 
     ########## Code starts here ##########
+    LAMBDA = 0.2
+    
+    # Left boundary condition is that initial state vector
+    # must be equal to the x0 (0, 0, -pi/2)
+    bca = np.array([za[0] - x0[0],
+                    za[1] - x0[1],
+                    za[2] - x0[2]])
+
+    # Final state vector
+    x, y, th, p1, p2, p3, tf = zb
+
+    V = (-0.5)*(p1*np.cos(th) + p2*np.sin(th))
+    om = (-0.5)*p3
+
+
+    # Constraint when tf free and x0 fixed
+    H = LAMBDA + pow(V,2) + pow(om,2) + p1*V*np.cos(th) + p2*V*np.sin(th) + p3*om
+    
+    bcb = np.array([x  - xf[0], # Final state vector must be equal to xf
+                    y  - xf[1],
+                    th - xf[2],
+                            H]) # H constraint must also be 0
 
     ########## Code ends here ##########
     return (bca, bcb)
@@ -79,7 +117,15 @@ def compute_controls(z):
         om: angular rate control input
     """
     ########## Code starts here ##########
+    N = np.shape(z)[0]
 
+    V = np.zeros(N)
+    om = np.zeros(N)
+    
+    for i in range(N):
+        x, y, th, p1, p2, p3, tf = z[i,:]        
+        V[i] = -0.5*(p1*np.cos(th) + p2*np.sin(th))
+        om[i] = -0.5*p3
     ########## Code ends here ##########
 
     return V, om
@@ -89,13 +135,19 @@ def main():
     This function solves the specified bvp problem and returns the corresponding optimal contol sequence
     Outputs:
         V: optimal V control sequence 
-        om: optimal om ccontrol sequence
+        om: optimal om control sequence
     You are required to define the problem inputs, initial guess, and compute the controls
 
     Hint: The total time is between 15-25
     """
     ########## Code starts here ##########
-
+    num_ODE = 7 # 7 ODEs for the 7 elements of z
+    num_parameters = 0 
+    num_left_boundary_conditions = 3
+    boundary_points = (0,1)
+    function = ode_fun
+    boundary_conditions = bc_fun
+    initial_guess = (2.5, 2.5, -np.pi/2.0, -2.0, -2.0, 0.5, 20) # Suggested by TA Joe on Piazza
     ########## Code ends here ##########
 
     problem_inputs = {
