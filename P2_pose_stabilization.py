@@ -44,6 +44,7 @@ class PoseController:
         alpha = wrapToPi(math.atan2(y_error, x_error) - th)
         delta = wrapToPi(math.atan2(y_error, x_error) - self.th_g)
 
+        # command 0 velocities once we are close to the goal 
         if (rho < RHO_THRES) and (alpha < ALPHA_THRES) and (delta < DELTA_THRES):
             V = 0
             om = 0

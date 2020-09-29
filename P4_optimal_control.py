@@ -71,7 +71,7 @@ def bc_fun(za, zb):
     om = (-0.5)*p3
 
 
-    # Constraint when tf free and x0 fixed
+    # Constraint when tf free and xf fixed
     H = LAMBDA + pow(V,2) + pow(om,2) + p1*V*np.cos(th) + p2*V*np.sin(th) + p3*om
     
     bcb = np.array([x  - xf[0], # Final state vector must be equal to xf

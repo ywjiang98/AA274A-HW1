@@ -71,9 +71,9 @@ class TrajectoryTracker:
         u1 = xdd_d + self.kpx * (x_d - x) + self.kdx * (xd_d - xd)
         u2 = ydd_d + self.kpy * (y_d - y) + self.kdy * (yd_d - yd)
         
-        # Matrix equation to solve for alpha and V*omega, Jprime * x = u
+        # Matrix equation to solve for alpha and V*omega, J * x = u
         J = np.array([[np.cos(th), -self.V_prev*np.sin(th)],
-                           [np.sin(th),  self.V_prev*np.cos(th)]])
+                      [np.sin(th),  self.V_prev*np.cos(th)]])
         u = np.array([u1, u2])
 
         # Solve Jx = u to find x = (alpha, om)
