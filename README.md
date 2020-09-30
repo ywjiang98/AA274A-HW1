@@ -11,4 +11,4 @@ pip install -r requirements.txt
 
 Assignment PDF is in [hw1.pdf](hw1.pdf).
 
-Writeup is in [Parthiv_Krishna_AA274_HW1_Writeup.pdf](Parthiv_Krishna_AA274_HW1_Writeup.pdf).
+Writeup is in [Parthiv_Krishna_AA274A_HW1_Writeup.pdf](Parthiv_Krishna_AA274A_HW1_Writeup.pdf).
